@@ -3,7 +3,7 @@ require('dotenv').config();
 const BASE_URL = 'http://localhost:5000/api';
 
 // Get your token from login first
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzUwMTQ0ODg0LCJleHAiOjE3NTA3NDk2ODR9.RrDICqndj-nw3n1Cei9p0XG1-FfZTuywZrO98EeZ__I';
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzUwODI0ODU3LCJleHAiOjE3NTE0Mjk2NTd9.27R_AFLLPoDvBBab3E41iWrW5Pp48aK7m1kN-K_31_I';
 
 const headers = {
   'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 const Project = require('../models/Project');
+const prisma = require('../config/database');
 
 // Get all projects
 const getProjects = async (req, res) => {
@@ -28,23 +29,112 @@ const getProjects = async (req, res) => {
   }
 };
 
-// Get project by ID
+// Get project by ID - Simple fix with manual counting
 const getProject = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const isAdmin = req.user.role === 'admin';
+    const userRole = req.user.role;
 
-    const project = await Project.findById(id, userId, isAdmin);
+    // Build the where clause based on user permissions
+    let whereClause = {
+      id: parseInt(id)
+    };
+
+    // If not admin, add access restrictions
+    if (userRole !== 'admin') {
+      whereClause.OR = [
+        { createdById: userId },
+        { 
+          members: {
+            some: { 
+              userId: userId
+            } 
+          } 
+        }
+      ];
+    }
+
+    // Get project and counts separately for reliability
+    const [project, taskCount, memberCount] = await Promise.all([
+      prisma.project.findFirst({
+        where: whereClause,
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
+              }
+            }
+          }
+        }
+      }),
+      // Manual task count
+      prisma.task.count({
+        where: { projectId: parseInt(id) }
+      }),
+      // Manual member count
+      prisma.projectMember.count({
+        where: { projectId: parseInt(id) }
+      })
+    ]);
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ 
+        message: 'Project not found or you do not have access to it' 
+      });
     }
+
+    // Transform the response
+    const transformedProject = {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      isActive: project.isActive,
+      createdBy: {
+        id: project.createdBy.id,
+        firstName: project.createdBy.firstName,
+        lastName: project.createdBy.lastName,
+        email: project.createdBy.email
+      },
+      members: project.members.map(member => ({
+        id: member.id,
+        user: {
+          id: member.user.id,
+          firstName: member.user.firstName,
+          lastName: member.user.lastName,
+          email: member.user.email
+        },
+        addedAt: member.addedAt
+      })),
+      memberCount: memberCount,
+      taskCount: taskCount,
+      _count: {
+        tasks: taskCount,
+        members: memberCount
+      }
+    };
 
     res.json({
       message: 'Project retrieved successfully',
-      data: project
+      data: transformedProject
     });
+
   } catch (error) {
     console.error('Get project error:', error);
     res.status(500).json({ 

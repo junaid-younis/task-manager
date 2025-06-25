@@ -1,15 +1,7 @@
 import React from 'react';
-import { useTasks } from '../../contexts/TaskContext';
 import TaskCard from './TaskCard';
-import { TASK_STATUS } from '../../utils/constants';
 
-const TaskBoard = ({ onEditTask, onDeleteTask, onViewComments }) => {
-  const { tasks, updateTaskStatus } = useTasks();
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    await updateTaskStatus(taskId, newStatus);
-  };
-
+const TaskBoard = ({ tasks = [], onEditTask, onDeleteTask, onStatusChange, onViewComments }) => {
   // Group tasks by status
   const tasksByStatus = {
     to_do: tasks.filter(task => task.status === 'to_do'),
@@ -65,7 +57,7 @@ const TaskBoard = ({ onEditTask, onDeleteTask, onViewComments }) => {
                   task={task}
                   onEdit={onEditTask}
                   onDelete={onDeleteTask}
-                  onStatusChange={handleStatusChange}
+                  onStatusChange={onStatusChange}
                   onViewComments={onViewComments}
                 />
               ))
