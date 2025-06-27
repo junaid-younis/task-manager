@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useProjects } from '../../contexts/ProjectContext';
+import { useAuth } from '../../contexts/AuthContext'; // Add this import
 import ProjectCard from './ProjectCard';
 import ProjectForm from './ProjectForm';
 import Button from '../common/Button';
@@ -19,6 +20,9 @@ const ProjectList = () => {
     deleteProject,
     clearError
   } = useProjects();
+
+  const { user } = useAuth(); // Add this line
+  const isAdmin = user?.role === 'admin'; // Add this line
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -60,12 +64,12 @@ const ProjectList = () => {
   };
 
   const openMemberManagement = (project) => {
-  setManagingMembers(project);
-};
+    setManagingMembers(project);
+  };
 
-const closeMemberManagement = () => {
-  setManagingMembers(null);
-};
+  const closeMemberManagement = () => {
+    setManagingMembers(null);
+  };
 
   const openCreateModal = () => {
     clearError();
@@ -93,20 +97,25 @@ const closeMemberManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Updated */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-600">Manage and organize your work projects</p>
+          <p className="text-gray-600">
+            {isAdmin ? 'Manage and organize your work projects' : 'View your assigned projects'}
+          </p>
         </div>
-        <Button
-          variant="primary"
-          onClick={openCreateModal}
-          className="flex items-center"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          New Project
-        </Button>
+        {/* Only show Create button for admins */}
+        {isAdmin && (
+          <Button
+            variant="primary"
+            onClick={openCreateModal}
+            className="flex items-center"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            New Project
+          </Button>
+        )}
       </div>
 
       {/* Error Message */}
@@ -116,17 +125,27 @@ const closeMemberManagement = () => {
         </div>
       )}
 
-      {/* Projects Grid */}
+      {/* Projects Grid - Updated empty state */}
       {projects.length === 0 ? (
         <div className="text-center py-12">
           <div className="mx-auto h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <PlusIcon className="h-12 w-12 text-gray-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-          <p className="text-gray-600 mb-6">Get started by creating your first project</p>
-          <Button variant="primary" onClick={openCreateModal}>
-            Create Project
-          </Button>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {isAdmin ? 'No projects yet' : 'No projects assigned'}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {isAdmin 
+              ? 'Get started by creating your first project'
+              : 'Contact your administrator to get added to projects'
+            }
+          </p>
+          {/* Only show Create button for admins */}
+          {isAdmin && (
+            <Button variant="primary" onClick={openCreateModal}>
+              Create Project
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -142,24 +161,26 @@ const closeMemberManagement = () => {
         </div>
       )}
 
-      {/* Create Project Modal */}
-      <Modal
-        isOpen={showCreateModal}
-        onClose={closeCreateModal}
-        title="Create New Project"
-        size="md"
-      >
-        <ProjectForm
-          onSubmit={handleCreateProject}
-          onCancel={closeCreateModal}
-          isSubmitting={isSubmitting}
-        />
-        {error && (
-          <div className="mt-4 bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-      </Modal>
+      {/* Create Project Modal - Only rendered for admins */}
+      {isAdmin && (
+        <Modal
+          isOpen={showCreateModal}
+          onClose={closeCreateModal}
+          title="Create New Project"
+          size="md"
+        >
+          <ProjectForm
+            onSubmit={handleCreateProject}
+            onCancel={closeCreateModal}
+            isSubmitting={isSubmitting}
+          />
+          {error && (
+            <div className="mt-4 bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+        </Modal>
+      )}
 
       {/* Edit Project Modal */}
       <Modal

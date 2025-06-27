@@ -66,9 +66,11 @@ router.use(auth);
 // Project CRUD routes
 router.get('/', getProjects);
 router.get('/:id', idValidation, handleValidationErrors, getProject);
-router.post('/', projectValidation, handleValidationErrors, createProject);
+
+//to restrict admin to create and delete projects
+router.post('/', requireAdmin, projectValidation, handleValidationErrors, createProject);
 router.put('/:id', idValidation, projectValidation, handleValidationErrors, updateProject);
-router.delete('/:id', idValidation, handleValidationErrors, deleteProject);
+router.delete('/:id',requireAdmin ,idValidation, handleValidationErrors, deleteProject);
 
 // Member management routes
 router.get('/:id/members', idValidation, handleValidationErrors, getMembers);

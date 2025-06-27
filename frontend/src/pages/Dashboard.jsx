@@ -7,6 +7,7 @@ import ProjectList from '../components/projects/ProjectList';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin'; // Add this line
 
   return (
     <ProjectProvider>
@@ -15,7 +16,7 @@ const Dashboard = () => {
 
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0 space-y-8">
-            {/* Welcome Section */}
+            {/* Welcome Section - Updated */}
             <div className="card p-6">
               <div className="flex items-center">
                 <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -28,7 +29,10 @@ const Dashboard = () => {
                     Welcome back, {user?.first_name || user?.username}! 👋
                   </h1>
                   <p className="text-gray-600">
-                    Here's what's happening with your projects and tasks
+                    {isAdmin 
+                      ? "Here's what's happening with your projects and tasks"
+                      : "Here are your assigned projects and tasks"
+                    }
                   </p>
                 </div>
               </div>
