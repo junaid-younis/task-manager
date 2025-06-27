@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  PencilIcon, 
+import {
+  PencilIcon,
   TrashIcon,
-  ReplyIcon
+  ArrowUturnRightIcon 
 } from '@heroicons/react/24/outline';
 import { formatDateTime, getInitials } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
@@ -76,7 +76,7 @@ const Comment = ({ comment, onEdit, onDelete, onReply, level = 0 }) => {
             {comment.isEdited && (
               <span className="text-xs text-gray-400">(edited)</span>
             )}
-            
+
             {/* Actions */}
             {isOwner && (
               <div className="relative">
@@ -86,7 +86,7 @@ const Comment = ({ comment, onEdit, onDelete, onReply, level = 0 }) => {
                 >
                   •••
                 </button>
-                
+
                 {showActions && (
                   <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                     <button
@@ -132,14 +132,14 @@ const Comment = ({ comment, onEdit, onDelete, onReply, level = 0 }) => {
               <p className="text-sm text-gray-700 whitespace-pre-wrap">
                 {comment.content}
               </p>
-              
+
               {/* Reply Button */}
               {level < maxLevel && (
                 <button
                   onClick={() => setIsReplying(!isReplying)}
                   className="flex items-center mt-2 text-xs text-gray-500 hover:text-gray-700"
                 >
-                  <ReplyIcon className="h-3 w-3 mr-1" />
+                  <ArrowUturnRightIcon className="h-3 w-3 mr-1" />
                   Reply
                 </button>
               )}
@@ -160,9 +160,9 @@ const Comment = ({ comment, onEdit, onDelete, onReply, level = 0 }) => {
                 <Button size="sm" onClick={handleReply}>
                   Reply
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => setIsReplying(false)}
                 >
                   Cancel
@@ -191,8 +191,8 @@ const Comment = ({ comment, onEdit, onDelete, onReply, level = 0 }) => {
 
       {/* Click outside to close actions */}
       {showActions && (
-        <div 
-          className="fixed inset-0 z-0" 
+        <div
+          className="fixed inset-0 z-0"
           onClick={() => setShowActions(false)}
         />
       )}
