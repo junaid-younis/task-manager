@@ -53,6 +53,9 @@ const TaskCard = ({
     setIsUpdatingStatus(true);
     try {
       await onStatusChange(task.id, newStatus);
+    } catch (error) {
+      // Show error message if user is not authorized
+      console.error('Status update failed:', error);
     } finally {
       setIsUpdatingStatus(false);
     }
