@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { projectService } from '../../services/projects';
 import UserDropdown from '../common/UserDropdown';
@@ -20,6 +20,7 @@ const MemberManagement = ({ project, onClose }) => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await projectService.getProjectMembers(project.id);
       setMembers(response.data || []);
     } catch (err) {
@@ -42,7 +43,7 @@ const MemberManagement = ({ project, onClose }) => {
       setSelectedUserId(null);
       setSuccess('Member added successfully!');
       fetchMembers();
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -62,7 +63,7 @@ const MemberManagement = ({ project, onClose }) => {
       await projectService.removeProjectMember(project.id, userId);
       setSuccess('Member removed successfully!');
       fetchMembers();
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -70,13 +71,28 @@ const MemberManagement = ({ project, onClose }) => {
     }
   };
 
-  // Get list of user IDs to exclude (already members + project creator)
-  const excludeUserIds = [
-    ...members.map(member => member.user.id),
-    project.createdBy?.id
-  ].filter(Boolean);
+  // Stable exclude list to prevent UserDropdown remounting
+  const excludeUserIds = useMemo(() => {
+    const memberIds = members.map(member => member.user?.id).filter(Boolean);
+    const creatorId = project.createdBy?.id;
+    
+    return creatorId ? [...memberIds, creatorId] : memberIds;
+  }, [members, project.createdBy?.id]);
 
-  if (loading) return <Loading text="Loading members..." />;
+  // Stable user selection handler
+  const handleUserSelect = useCallback((user) => {
+    setSelectedUserId(user?.id || null);
+  }, []);
+
+  // Stable dropdown key to prevent remounting
+  const dropdownKey = useMemo(() => 
+    `member-dropdown-${project.id}-${excludeUserIds.join(',')}`, 
+    [project.id, excludeUserIds]
+  );
+
+  if (loading) {
+    return <Loading text="Loading members..." />;
+  }
 
   return (
     <div className="space-y-6">
@@ -101,35 +117,41 @@ const MemberManagement = ({ project, onClose }) => {
       )}
 
       {/* Add Member Form */}
-      <form onSubmit={handleAddMember} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Add New Member
-          </label>
-          <UserDropdown
-            value={selectedUserId}
-            onChange={(user) => setSelectedUserId(user.id)}
-            placeholder="Search and select a user..."
-            excludeUserIds={excludeUserIds}
-          />
-        </div>
+      <div className="card p-4 bg-gray-50">
+        <h4 className="text-md font-medium text-gray-900 mb-4">Add New Member</h4>
         
-        <Button
-          type="submit"
-          loading={addingMember}
-          disabled={!selectedUserId || addingMember}
-          className="w-full"
-        >
-          {addingMember ? 'Adding Member...' : 'Add Member'}
-        </Button>
-      </form>
+        <form onSubmit={handleAddMember} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select User
+            </label>
+            <UserDropdown
+              key={dropdownKey}
+              value={selectedUserId}
+              onChange={handleUserSelect}
+              placeholder="Search and select a user..."
+              excludeUserIds={excludeUserIds}
+              className="w-full"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            loading={addingMember}
+            disabled={!selectedUserId || addingMember}
+            className="w-full"
+          >
+            {addingMember ? 'Adding Member...' : 'Add Member'}
+          </Button>
+        </form>
+      </div>
 
       {/* Current Members List */}
       <div>
         <h4 className="text-sm font-medium text-gray-900 mb-3">
-          Current Members ({members.length + 1})
+          Current Members ({(members?.length || 0) + 1})
         </h4>
-        
+
         <div className="space-y-3">
           {/* Project Creator */}
           {project.createdBy && (
@@ -148,18 +170,18 @@ const MemberManagement = ({ project, onClose }) => {
           )}
 
           {/* Members */}
-          {members.length === 0 ? (
-            <p className="text-gray-500 text-center py-4 text-sm">
+          {!members || members.length === 0 ? (
+            <p className="text-gray-500 text-center py-4 text-sm bg-gray-50 rounded-lg">
               No additional members yet. Add members using the form above.
             </p>
           ) : (
             members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={`member-${member.id}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-900">
-                    {member.user.firstName} {member.user.lastName}
+                    {member.user?.firstName} {member.user?.lastName}
                   </p>
-                  <p className="text-sm text-gray-600">{member.user.email}</p>
+                  <p className="text-sm text-gray-600">{member.user?.email}</p>
                   <p className="text-xs text-gray-500">
                     Added {new Date(member.addedAt).toLocaleDateString()}
                   </p>
@@ -167,7 +189,7 @@ const MemberManagement = ({ project, onClose }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleRemoveMember(member.user.id)}
+                  onClick={() => handleRemoveMember(member.user?.id)}
                   className="text-red-600 hover:text-red-700 hover:border-red-300"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -188,4 +210,4 @@ const MemberManagement = ({ project, onClose }) => {
   );
 };
 
-export default MemberManagement;
+export default React.memo(MemberManagement);

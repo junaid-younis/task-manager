@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { useTasks } from '../../contexts/TaskContext';
 import { useProjects } from '../../contexts/ProjectContext';
@@ -9,13 +9,34 @@ const TaskFilters = () => {
   const { filters, setFilters, fetchTasks } = useTasks();
   const { projects } = useProjects();
 
-  const handleFilterChange = (key, value) => {
+  // 🔧 Fixed: Debounced filter change to prevent too many API calls
+  const handleFilterChange = useCallback((key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    fetchTasks(newFilters);
-  };
+    
+    // 🔧 Fixed: Use setTimeout to debounce API calls
+    const timeoutId = setTimeout(() => {
+      fetchTasks({ filters: newFilters });
+    }, 300); // 300ms debounce
 
-  const clearFilters = () => {
+    return () => clearTimeout(timeoutId);
+  }, [filters, setFilters, fetchTasks]);
+
+  // 🔧 Fixed: Optimized search handler with debouncing
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value;
+    const newFilters = { ...filters, search: value };
+    setFilters(newFilters);
+    
+    // Debounce search to avoid too many API calls
+    const timeoutId = setTimeout(() => {
+      fetchTasks({ filters: newFilters });
+    }, 500); // 500ms debounce for search
+
+    return () => clearTimeout(timeoutId);
+  }, [filters, setFilters, fetchTasks]);
+
+  const clearFilters = useCallback(() => {
     const clearedFilters = {
       projectId: null,
       status: null,
@@ -24,10 +45,54 @@ const TaskFilters = () => {
       search: ''
     };
     setFilters(clearedFilters);
-    fetchTasks(clearedFilters);
-  };
+    fetchTasks({ filters: clearedFilters });
+  }, [setFilters, fetchTasks]);
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== null && value !== '');
+  // 🔧 Fixed: Memoize computed values to prevent unnecessary re-renders
+  const hasActiveFilters = useMemo(() => {
+    return Object.values(filters).some(value => value !== null && value !== '');
+  }, [filters]);
+
+  const activeFiltersDisplay = useMemo(() => {
+    const activeFilters = [];
+    
+    if (filters.search) {
+      activeFilters.push({
+        type: 'search',
+        label: `Search: "${filters.search}"`,
+        color: 'bg-blue-100 text-blue-800'
+      });
+    }
+    
+    if (filters.projectId) {
+      const project = projects.find(p => p.id === parseInt(filters.projectId));
+      if (project) {
+        activeFilters.push({
+          type: 'project',
+          label: `Project: ${project.name}`,
+          color: 'bg-green-100 text-green-800'
+        });
+      }
+    }
+    
+    if (filters.status) {
+      activeFilters.push({
+        type: 'status',
+        label: `Status: ${filters.status.replace('_', ' ')}`,
+        color: 'bg-yellow-100 text-yellow-800'
+      });
+    }
+    
+    if (filters.priority) {
+      activeFilters.push({
+        type: 'priority',
+        label: `Priority: ${PRIORITY_LEVELS[filters.priority]}`,
+        color: 'bg-purple-100 text-purple-800'
+      });
+    }
+    
+    return activeFilters;
+  }, [filters, projects]);
 
   return (
     <div className="card p-4 mb-6">
@@ -39,8 +104,8 @@ const TaskFilters = () => {
             <input
               type="text"
               placeholder="Search tasks..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              value={filters.search || ''}
+              onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -103,26 +168,14 @@ const TaskFilters = () => {
       {/* Active Filters Display */}
       {hasActiveFilters && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {filters.search && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              Search: "{filters.search}"
+          {activeFiltersDisplay.map((filter, index) => (
+            <span
+              key={`${filter.type}-${index}`}
+              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${filter.color}`}
+            >
+              {filter.label}
             </span>
-          )}
-          {filters.projectId && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Project: {projects.find(p => p.id === parseInt(filters.projectId))?.name}
-            </span>
-          )}
-          {filters.status && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-              Status: {filters.status.replace('_', ' ')}
-            </span>
-          )}
-          {filters.priority && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              Priority: {PRIORITY_LEVELS[filters.priority]}
-            </span>
-          )}
+          ))}
         </div>
       )}
     </div>
