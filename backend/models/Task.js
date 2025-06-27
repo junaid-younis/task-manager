@@ -1,16 +1,33 @@
+// models/Task.js - CORRECTED to match your Prisma schema
+
 const prisma = require('../config/database');
 
 class Task {
-  // Create a new task
+  // Create a new task - CORRECTED field names
   static async create(taskData, createdById) {
     const { 
       title, 
       description, 
       projectId, 
-      assignedToId = null, 
+      assignedTo = null,      // Frontend sends this
+      assignedToId = null,    // Legacy support
       priority = 1, 
       dueDate = null 
     } = taskData;
+
+    // Use assignedTo if provided, fallback to assignedToId
+    const finalAssignedToId = assignedTo || assignedToId;
+
+    console.log('📝 Task creation data:', {
+      title,
+      description,
+      projectId,
+      assignedTo,
+      assignedToId,
+      finalAssignedToId,
+      priority,
+      dueDate
+    });
 
     // Verify project exists and user has access
     const project = await prisma.project.findFirst({
@@ -18,7 +35,7 @@ class Task {
         id: parseInt(projectId),
         isActive: true,
         OR: [
-          { createdById },
+          { createdById }, // ✅ This matches your schema
           { members: { some: { userId: createdById } } }
         ]
       }
@@ -28,24 +45,33 @@ class Task {
       throw new Error('Project not found or access denied');
     }
 
-    // If assignedToId is provided, verify user is a project member
-    if (assignedToId) {
-      const isMember = await this.verifyProjectMember(projectId, assignedToId);
+    // If finalAssignedToId is provided, verify user is a project member
+    if (finalAssignedToId) {
+      console.log('🔍 Verifying assignment for user:', finalAssignedToId, 'in project:', projectId);
+      
+      const isMember = await this.verifyProjectMember(projectId, finalAssignedToId);
       if (!isMember) {
+        console.log('❌ User is not a project member');
         throw new Error('Cannot assign task to user who is not a project member');
       }
+      
+      console.log('✅ Assignment verification passed');
     }
 
+    const taskCreateData = {
+      title,
+      description,
+      projectId: parseInt(projectId),
+      assignedToId: finalAssignedToId ? parseInt(finalAssignedToId) : null, // ✅ This matches your schema
+      createdById: parseInt(createdById), // ✅ This matches your schema
+      priority: parseInt(priority),
+      dueDate: dueDate ? new Date(dueDate) : null
+    };
+
+    console.log('💾 Creating task with data:', taskCreateData);
+
     const task = await prisma.task.create({
-      data: {
-        title,
-        description,
-        projectId: parseInt(projectId),
-        assignedToId: assignedToId ? parseInt(assignedToId) : null,
-        createdById: parseInt(createdById),
-        priority: parseInt(priority),
-        dueDate: dueDate ? new Date(dueDate) : null
-      },
+      data: taskCreateData,
       include: {
         project: {
           select: {
@@ -53,7 +79,7 @@ class Task {
             name: true
           }
         },
-        assignedTo: {
+        assignedTo: { // ✅ This matches your schema relation name
           select: {
             id: true,
             username: true,
@@ -61,7 +87,92 @@ class Task {
             lastName: true
           }
         },
-        createdBy: {
+        createdBy: { // ✅ This matches your schema relation name
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        _count: {
+          select: {
+            comments: true
+          }
+        }
+      }
+    });
+
+    console.log('✅ Task created successfully:', {
+      id: task.id,
+      title: task.title,
+      assignedToId: task.assignedToId,
+      assignedTo: task.assignedTo
+    });
+
+    return this.formatTask(task);
+  }
+
+  // Update task - CORRECTED field names
+  static async update(id, updateData, userId, isAdmin = false) {
+    // Check if user has permission to update
+    const existingTask = await this.findById(id, userId, isAdmin);
+    
+    if (!existingTask) {
+      throw new Error('Task not found or access denied');
+    }
+
+    // Handle both assignedTo and assignedToId from frontend
+    const finalAssignedToId = updateData.assignedTo !== undefined 
+      ? updateData.assignedTo 
+      : updateData.assignedToId;
+
+    // If changing assignment, verify new assignee is project member
+    if (finalAssignedToId !== undefined && finalAssignedToId !== null) {
+      const isMember = await this.verifyProjectMember(
+        existingTask.project.id, 
+        finalAssignedToId
+      );
+      if (!isMember) {
+        throw new Error('Cannot assign task to user who is not a project member');
+      }
+    }
+
+    // Prepare update data
+    const updateFields = {};
+    
+    if (updateData.title !== undefined) updateFields.title = updateData.title;
+    if (updateData.description !== undefined) updateFields.description = updateData.description;
+    if (updateData.status !== undefined) updateFields.status = updateData.status;
+    if (updateData.priority !== undefined) updateFields.priority = parseInt(updateData.priority);
+    if (updateData.dueDate !== undefined) {
+      updateFields.dueDate = updateData.dueDate ? new Date(updateData.dueDate) : null;
+    }
+    
+    // Handle assignment field mapping
+    if (updateData.assignedTo !== undefined || updateData.assignedToId !== undefined) {
+      updateFields.assignedToId = finalAssignedToId ? parseInt(finalAssignedToId) : null; // ✅ Correct field name
+    }
+
+    const task = await prisma.task.update({
+      where: { id: parseInt(id) },
+      data: updateFields,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        assignedTo: { // ✅ Correct relation name
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        createdBy: { // ✅ Correct relation name
           select: {
             id: true,
             username: true,
@@ -80,7 +191,7 @@ class Task {
     return this.formatTask(task);
   }
 
-  // Find all tasks with filtering and pagination
+  // Find all tasks with filtering and pagination - CORRECTED
   static async findAll(options = {}) {
     const { 
       userId, 
@@ -109,7 +220,7 @@ class Task {
             id: parseInt(projectId),
             isActive: true,
             OR: [
-              { createdById: userId },
+              { createdById: userId }, // ✅ Correct field name
               { members: { some: { userId } } }
             ]
           }
@@ -125,7 +236,7 @@ class Task {
         whereClause.project = {
           isActive: true,
           OR: [
-            { createdById: userId },
+            { createdById: userId }, // ✅ Correct field name
             { members: { some: { userId } } }
           ]
         };
@@ -136,7 +247,7 @@ class Task {
 
     // Apply filters
     if (assignedToId) {
-      whereClause.assignedToId = parseInt(assignedToId);
+      whereClause.assignedToId = parseInt(assignedToId); // ✅ Correct field name
     }
 
     if (status) {
@@ -168,7 +279,7 @@ class Task {
               name: true
             }
           },
-          assignedTo: {
+          assignedTo: { // ✅ Correct relation name
             select: {
               id: true,
               username: true,
@@ -176,7 +287,7 @@ class Task {
               lastName: true
             }
           },
-          createdBy: {
+          createdBy: { // ✅ Correct relation name
             select: {
               id: true,
               username: true,
@@ -209,7 +320,7 @@ class Task {
     };
   }
 
-  // Find task by ID
+  // Find task by ID - CORRECTED
   static async findById(id, userId = null, isAdmin = false) {
     let whereClause = {
       id: parseInt(id)
@@ -220,7 +331,7 @@ class Task {
       whereClause.project = {
         isActive: true,
         OR: [
-          { createdById: userId },
+          { createdById: userId }, // ✅ Correct field name
           { members: { some: { userId } } }
         ]
       };
@@ -233,10 +344,10 @@ class Task {
           select: {
             id: true,
             name: true,
-            createdById: true
+            createdById: true // ✅ Correct field name
           }
         },
-        assignedTo: {
+        assignedTo: { // ✅ Correct relation name
           select: {
             id: true,
             username: true,
@@ -245,7 +356,7 @@ class Task {
             email: true
           }
         },
-        createdBy: {
+        createdBy: { // ✅ Correct relation name
           select: {
             id: true,
             username: true,
@@ -279,78 +390,7 @@ class Task {
     return task ? this.formatTask(task) : null;
   }
 
-  // Update task
-  static async update(id, updateData, userId, isAdmin = false) {
-    // Check if user has permission to update
-    const existingTask = await this.findById(id, userId, isAdmin);
-    
-    if (!existingTask) {
-      throw new Error('Task not found or access denied');
-    }
-
-    // If changing assignment, verify new assignee is project member
-    if (updateData.assignedToId !== undefined && updateData.assignedToId !== null) {
-      const isMember = await this.verifyProjectMember(
-        existingTask.project.id, 
-        updateData.assignedToId
-      );
-      if (!isMember) {
-        throw new Error('Cannot assign task to user who is not a project member');
-      }
-    }
-
-    // Prepare update data
-    const updateFields = {};
-    
-    if (updateData.title !== undefined) updateFields.title = updateData.title;
-    if (updateData.description !== undefined) updateFields.description = updateData.description;
-    if (updateData.status !== undefined) updateFields.status = updateData.status;
-    if (updateData.priority !== undefined) updateFields.priority = parseInt(updateData.priority);
-    if (updateData.dueDate !== undefined) {
-      updateFields.dueDate = updateData.dueDate ? new Date(updateData.dueDate) : null;
-    }
-    if (updateData.assignedToId !== undefined) {
-      updateFields.assignedToId = updateData.assignedToId ? parseInt(updateData.assignedToId) : null;
-    }
-
-    const task = await prisma.task.update({
-      where: { id: parseInt(id) },
-      data: updateFields,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true
-          }
-        },
-        createdBy: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true
-          }
-        },
-        _count: {
-          select: {
-            comments: true
-          }
-        }
-      }
-    });
-
-    return this.formatTask(task);
-  }
-
-  // Delete task
+  // Delete task - CORRECTED
   static async delete(id, userId, isAdmin = false) {
     // Check if user has permission to delete
     const existingTask = await this.findById(id, userId, isAdmin);
@@ -360,7 +400,7 @@ class Task {
     }
 
     // Only project creators or admins can delete tasks
-    if (!isAdmin && existingTask.project.createdById !== userId) {
+    if (!isAdmin && existingTask.project.createdById !== userId) { // ✅ Correct field name
       throw new Error('Only project creators can delete tasks');
     }
 
@@ -371,7 +411,7 @@ class Task {
     return { message: 'Task deleted successfully' };
   }
 
-  // Get task statistics
+  // Get task statistics - CORRECTED
   static async getStatistics(projectId = null, userId = null, isAdmin = false) {
     let whereClause = {};
 
@@ -379,7 +419,7 @@ class Task {
       whereClause.project = {
         isActive: true,
         OR: [
-          { createdById: userId },
+          { createdById: userId }, // ✅ Correct field name
           { members: { some: { userId } } }
         ]
       };
@@ -411,7 +451,7 @@ class Task {
       userId ? prisma.task.count({ 
         where: { 
           ...whereClause, 
-          assignedToId: userId 
+          assignedToId: userId // ✅ Correct field name
         } 
       }) : 0
     ]);
@@ -429,29 +469,69 @@ class Task {
     };
   }
 
-  // Helper: Verify if user is project member
+  // Verify if user is project member - CORRECTED
   static async verifyProjectMember(projectId, userId) {
-    const membership = await prisma.projectMember.findUnique({
+    console.log('🔍 Verifying project membership:', { projectId, userId });
+    
+    const projectIdInt = parseInt(projectId);
+    const userIdInt = parseInt(userId);
+
+    // Check if user is project creator
+    const project = await prisma.project.findFirst({
       where: {
-        projectId_userId: {
-          projectId: parseInt(projectId),
-          userId: parseInt(userId)
+        id: projectIdInt,
+        createdById: userIdInt, // ✅ Correct field name
+        isActive: true
+      }
+    });
+
+    if (project) {
+      console.log('✅ User is project creator');
+      return true;
+    }
+
+    // Check if user is project member
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: projectIdInt,
+        userId: userIdInt
+      },
+      include: {
+        user: {
+          select: { isActive: true }
         }
       }
     });
 
-    // Also check if user is project creator
-    const project = await prisma.project.findFirst({
-      where: {
-        id: parseInt(projectId),
-        createdById: parseInt(userId)
+    if (membership && membership.user.isActive) {
+      console.log('✅ User is project member');
+      return true;
+    }
+
+    console.log('❌ User is neither creator nor member of project');
+    
+    // Debug: Show who IS a member
+    const projectMembers = await prisma.project.findUnique({
+      where: { id: projectIdInt },
+      include: {
+        createdBy: { select: { id: true, firstName: true, lastName: true } }, // ✅ Correct relation
+        members: {
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true } }
+          }
+        }
       }
     });
 
-    return membership || project;
+    console.log('📋 Project members:', {
+      creator: projectMembers?.createdBy,
+      members: projectMembers?.members?.map(m => m.user)
+    });
+
+    return false;
   }
 
-  // Format task for response
+  // Format task for response - CORRECTED
   static formatTask(task) {
     const formatted = {
       id: task.id,
@@ -464,8 +544,8 @@ class Task {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
-      assignedTo: task.assignedTo,
-      createdBy: task.createdBy
+      assignedTo: task.assignedTo, // ✅ This relation name matches your schema
+      createdBy: task.createdBy     // ✅ This relation name matches your schema
     };
 
     // Add comments if included

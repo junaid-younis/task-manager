@@ -1,0 +1,7 @@
+[33m047b6a1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/Rbac-module-changes[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Merge pull request #1 from junaid-younis/feature/task-status-module, resolve fetch member problem
+[33m330c689[m[33m ([m[1;31morigin/feature/task-status-module[m[33m, [m[1;32mfeature/task-status-module[m[33m)[m Work on task status module: update dropdown and task context
+[33m18fa889[m[33m ([m[1;31morigin/feature/my-new-branch[m[33m)[m Work on view project details page and button
+[33mc945bae[m Merge branch 'main' of https://github.com/junaid-younis/task-manager
+[33m23ab5b9[m Add .gitignore file
+[33m1bca078[m Initial commit
+[33m110a264[m Initial commit

@@ -67,6 +67,7 @@ router.use(auth);
 router.get('/', getProjects);
 router.get('/:id', idValidation, handleValidationErrors, getProject);
 
+
 //to restrict admin to create and delete projects
 router.post('/', requireAdmin, projectValidation, handleValidationErrors, createProject);
 router.put('/:id', idValidation, projectValidation, handleValidationErrors, updateProject);
@@ -77,4 +78,4 @@ router.get('/:id/members', idValidation, handleValidationErrors, getMembers);
 router.post('/:id/members', idValidation, memberValidation, handleValidationErrors, addMember);
 router.delete('/:id/members/:userId', idValidation, userIdValidation, handleValidationErrors, removeMember);
 
-module.exports = router;    
+module.exports = router;
