@@ -66,13 +66,14 @@ router.use(auth);
 // Project CRUD routes
 router.get('/', getProjects);
 router.get('/:id', idValidation, handleValidationErrors, getProject);
-router.post('/', projectValidation, handleValidationErrors, createProject);
+// 🔥 ADD requireAdmin middleware here
+router.post('/', requireAdmin, projectValidation, handleValidationErrors, createProject);
 router.put('/:id', idValidation, projectValidation, handleValidationErrors, updateProject);
-router.delete('/:id', idValidation, handleValidationErrors, deleteProject);
+router.delete('/:id', requireAdmin,idValidation, handleValidationErrors, deleteProject);
 
 // Member management routes
 router.get('/:id/members', idValidation, handleValidationErrors, getMembers);
 router.post('/:id/members', idValidation, memberValidation, handleValidationErrors, addMember);
 router.delete('/:id/members/:userId', idValidation, userIdValidation, handleValidationErrors, removeMember);
 
-module.exports = router;    
+module.exports = router;
