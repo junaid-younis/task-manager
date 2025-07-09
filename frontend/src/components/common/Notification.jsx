@@ -13,19 +13,19 @@ const Notification = ({
   isVisible,
   onClose,
   duration = 4000,
-  position = 'top-right' // 'top-right', 'top-left', 'bottom-right', 'bottom-left'
+  position = 'top-right' // 'top-right', 'top-left', 'bottom-right', 'bottom-left', 'top-center'
 }) => {
   const [isShowing, setIsShowing] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
       setIsShowing(true);
-      
+
       if (duration > 0) {
         const timer = setTimeout(() => {
           handleClose();
         }, duration);
-        
+
         return () => clearTimeout(timer);
       }
     }
@@ -77,18 +77,21 @@ const Notification = ({
   const positionClasses = {
     'top-right': 'top-4 right-4',
     'top-left': 'top-4 left-4',
+    'top-center': 'top-4 left-1/2 transform -translate-x-1/2',
     'bottom-right': 'bottom-4 right-4',
     'bottom-left': 'bottom-4 left-4'
   };
 
   const notificationContent = (
     <div
-      className={`fixed z-50 ${positionClasses[position]} transition-all duration-300 ease-in-out transform ${
-        isShowing ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+      className={`fixed z-[9999] ${positionClasses[position]} transition-all duration-300 ease-in-out transform ${
+        isShowing ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-2 opacity-0 scale-95'
       }`}
+      style={{ zIndex: 9999 }} // Ensure it's above everything
     >
       <div
-        className={`max-w-sm w-full ${config.bgColor} ${config.borderColor} border rounded-lg shadow-lg p-4`}
+        className={`max-w-sm w-full ${config.bgColor} ${config.borderColor} border rounded-lg shadow-lg p-4 backdrop-blur-sm`}
+        style={{ minWidth: '300px' }}
       >
         <div className="flex items-start">
           <div className="flex-shrink-0">
@@ -102,8 +105,9 @@ const Notification = ({
           <div className="ml-4 flex-shrink-0 flex">
             <button
               onClick={handleClose}
-              className={`rounded-md inline-flex ${config.textColor} hover:${config.textColor} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${type}-500`}
+              className={`rounded-md inline-flex ${config.textColor} hover:${config.textColor} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${type}-500 transition-colors`}
             >
+              <span className="sr-only">Close</span>
               <XMarkIcon className="h-4 w-4" />
             </button>
           </div>
@@ -122,9 +126,9 @@ export const useNotifications = () => {
   const addNotification = (notification) => {
     const id = Date.now() + Math.random();
     const newNotification = { ...notification, id };
-    
+
     setNotifications(prev => [...prev, newNotification]);
-    
+
     return id;
   };
 
@@ -164,19 +168,26 @@ export const useNotifications = () => {
   };
 };
 
-// NotificationContainer component to render all notifications
+// NotificationContainer component to render all notifications with stacking
 export const NotificationContainer = () => {
   const { notifications, removeNotification } = useNotifications();
 
   return (
     <>
-      {notifications.map((notification) => (
-        <Notification
+      {notifications.map((notification, index) => (
+        <div
           key={notification.id}
-          {...notification}
-          isVisible={true}
-          onClose={() => removeNotification(notification.id)}
-        />
+          style={{
+            transform: `translateY(${index * 70}px)`, // Stack notifications
+            zIndex: 9999 - index // Ensure proper stacking order
+          }}
+        >
+          <Notification
+            {...notification}
+            isVisible={true}
+            onClose={() => removeNotification(notification.id)}
+          />
+        </div>
       ))}
     </>
   );

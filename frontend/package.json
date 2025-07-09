@@ -12,6 +12,8 @@
     "format": "prettier --write src/**/*.{js,jsx,css,md}"
   },
   "dependencies": {
+    "@copilotkit/react-core": "^1.9.1",
+    "@copilotkit/react-ui": "^0.2.0",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.1.10",
     "axios": "^1.10.0",

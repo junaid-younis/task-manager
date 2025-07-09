@@ -169,7 +169,7 @@ const TaskForm = ({ task, onSubmit, onCancel, isSubmitting = false, defaultStatu
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Title */}
       <Input
-        label="Task Title"
+        label={<span>Task Title <span className="text-red-500">*</span></span>}
         type="text"
         name="title"
         value={formData.title}
@@ -296,7 +296,7 @@ const TaskForm = ({ task, onSubmit, onCancel, isSubmitting = false, defaultStatu
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           <CalendarIcon className="h-4 w-4 inline mr-1" />
-          Due Date
+          Due Date <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           <input
