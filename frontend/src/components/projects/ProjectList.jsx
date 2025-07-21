@@ -29,9 +29,13 @@ const ProjectList = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [managingMembers, setManagingMembers] = useState(null);
 
-  useEffect(() => {
+ 
+useEffect(() => {
+  if (user) {
+    console.log('📡 ProjectList: User changed, fetching projects');
     fetchProjects();
-  }, [fetchProjects]);
+  }
+}, [user?.id, fetchProjects]); // Fetch when user changes
 
   const handleCreateProject = async (projectData) => {
     setIsSubmitting(true);

@@ -1,24 +1,26 @@
+// src/pages/Tasks.jsx
 import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { TaskProvider, useTasks } from '../contexts/TaskContext';
-import { ProjectProvider } from '../contexts/ProjectContext';
+import { useTasks } from '../contexts/TaskContext';
+import { useProjects } from '../contexts/ProjectContext';
 import Navbar from '../components/common/Navbar';
 import TaskList from '../components/tasks/TaskList';
 import Notification, { useNotifications } from '../components/common/Notification';
 
-// Inner component that uses the contexts
-const TasksContent = () => {
+const Tasks = () => {
   const [searchParams] = useSearchParams();
-  const { 
-    successMessage, 
-    error, 
-    clearSuccessMessage, 
+  const {
+    successMessage,
+    error,
+    clearSuccessMessage,
     clearError,
-    setFilters 
+    setFilters
   } = useTasks();
-  
+
+  const { fetchProjects } = useProjects();
+
   const { showSuccess, showError, notifications, removeNotification } = useNotifications();
-  const hasSetInitialFilters = useRef(false); // 🔧 Fix: Prevent multiple filter sets
+  const hasSetInitialFilters = useRef(false);
 
   // Handle URL parameters for filtering - only once
   useEffect(() => {
@@ -26,7 +28,7 @@ const TasksContent = () => {
       const projectId = searchParams.get('projectId');
       const status = searchParams.get('status');
       const assignedTo = searchParams.get('assignedTo');
-      
+
       if (projectId || status || assignedTo) {
         setFilters({
           projectId: projectId ? parseInt(projectId) : null,
@@ -76,16 +78,6 @@ const TasksContent = () => {
         />
       ))}
     </>
-  );
-};
-
-const Tasks = () => {
-  return (
-    <ProjectProvider>
-      <TaskProvider>
-        <TasksContent />
-      </TaskProvider>
-    </ProjectProvider>
   );
 };
 
