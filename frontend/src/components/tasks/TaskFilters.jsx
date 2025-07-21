@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
+// src/components/tasks/TaskFilters.jsx
+import React, { useCallback, useMemo, useRef } from 'react';
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { useTasks } from '../../contexts/TaskContext';
 import { useProjects } from '../../contexts/ProjectContext';
@@ -8,32 +9,42 @@ import Button from '../common/Button';
 const TaskFilters = () => {
   const { filters, setFilters, fetchTasks } = useTasks();
   const { projects } = useProjects();
+  
+  // ✅ Use refs to manage debouncing
+  const searchTimeoutRef = useRef(null);
+  const filterTimeoutRef = useRef(null);
 
-  // 🔧 Fixed: Debounced filter change to prevent too many API calls
+  // ✅ Fixed: Debounced filter change to prevent too many API calls
   const handleFilterChange = useCallback((key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    
-    // 🔧 Fixed: Use setTimeout to debounce API calls
-    const timeoutId = setTimeout(() => {
+
+    // Clear existing timeout
+    if (filterTimeoutRef.current) {
+      clearTimeout(filterTimeoutRef.current);
+    }
+
+    // ✅ Fixed: Debounce API calls
+    filterTimeoutRef.current = setTimeout(() => {
       fetchTasks({ filters: newFilters });
     }, 300); // 300ms debounce
-
-    return () => clearTimeout(timeoutId);
   }, [filters, setFilters, fetchTasks]);
 
-  // 🔧 Fixed: Optimized search handler with debouncing
+  // ✅ Fixed: Optimized search handler with debouncing
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value;
     const newFilters = { ...filters, search: value };
     setFilters(newFilters);
-    
+
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
     // Debounce search to avoid too many API calls
-    const timeoutId = setTimeout(() => {
+    searchTimeoutRef.current = setTimeout(() => {
       fetchTasks({ filters: newFilters });
     }, 500); // 500ms debounce for search
-
-    return () => clearTimeout(timeoutId);
   }, [filters, setFilters, fetchTasks]);
 
   const clearFilters = useCallback(() => {
@@ -48,14 +59,14 @@ const TaskFilters = () => {
     fetchTasks({ filters: clearedFilters });
   }, [setFilters, fetchTasks]);
 
-  // 🔧 Fixed: Memoize computed values to prevent unnecessary re-renders
+  // ✅ Fixed: Memoize computed values to prevent unnecessary re-renders
   const hasActiveFilters = useMemo(() => {
     return Object.values(filters).some(value => value !== null && value !== '');
   }, [filters]);
 
   const activeFiltersDisplay = useMemo(() => {
     const activeFilters = [];
-    
+
     if (filters.search) {
       activeFilters.push({
         type: 'search',
@@ -63,7 +74,7 @@ const TaskFilters = () => {
         color: 'bg-blue-100 text-blue-800'
       });
     }
-    
+
     if (filters.projectId) {
       const project = projects.find(p => p.id === parseInt(filters.projectId));
       if (project) {
@@ -74,7 +85,7 @@ const TaskFilters = () => {
         });
       }
     }
-    
+
     if (filters.status) {
       activeFilters.push({
         type: 'status',
@@ -82,7 +93,7 @@ const TaskFilters = () => {
         color: 'bg-yellow-100 text-yellow-800'
       });
     }
-    
+
     if (filters.priority) {
       activeFilters.push({
         type: 'priority',
@@ -90,9 +101,21 @@ const TaskFilters = () => {
         color: 'bg-purple-100 text-purple-800'
       });
     }
-    
+
     return activeFilters;
   }, [filters, projects]);
+
+  // ✅ Cleanup timeouts on unmount
+  React.useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="card p-4 mb-6">
@@ -182,4 +205,4 @@ const TaskFilters = () => {
   );
 };
 
-export default TaskFilters;
+export default React.memo(TaskFilters);

@@ -1,27 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export const useApi = (apiFunction, dependencies = []) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const hasFetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     let isMounted = true;
+    mountedRef.current = true;
 
     const fetchData = async () => {
+      // Prevent double fetching in development (React Strict Mode)
+      if (hasFetchedRef.current) {
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
+        hasFetchedRef.current = true;
+        
         const result = await apiFunction();
-        if (isMounted) {
+        
+        if (isMounted && mountedRef.current) {
           setData(result);
         }
       } catch (err) {
-        if (isMounted) {
+        if (isMounted && mountedRef.current) {
           setError(err);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && mountedRef.current) {
           setLoading(false);
         }
       }
@@ -31,6 +42,7 @@ export const useApi = (apiFunction, dependencies = []) => {
 
     return () => {
       isMounted = false;
+      mountedRef.current = false;
     };
   }, dependencies);
 
@@ -38,14 +50,28 @@ export const useApi = (apiFunction, dependencies = []) => {
     try {
       setLoading(true);
       setError(null);
+      hasFetchedRef.current = true;
+      
       const result = await apiFunction();
-      setData(result);
+      
+      if (mountedRef.current) {
+        setData(result);
+      }
     } catch (err) {
-      setError(err);
+      if (mountedRef.current) {
+        setError(err);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
+
+  // Reset the fetch flag when dependencies change
+  useEffect(() => {
+    hasFetchedRef.current = false;
+  }, dependencies);
 
   return { data, loading, error, refetch };
 };
