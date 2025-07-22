@@ -2,7 +2,7 @@ const express = require('express');
 const { param, query, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/rbac');
-const prisma = require('../config/database');
+const { prisma } = require('../config/database');
 
 const router = express.Router();
 

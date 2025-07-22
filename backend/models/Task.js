@@ -1,6 +1,6 @@
 // models/Task.js - CORRECTED to match your Prisma schema
 
-const prisma = require('../config/database');
+const { prisma } = require('../config/database');
 
 class Task {
   // Create a new task - CORRECTED field names

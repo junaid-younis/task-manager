@@ -1,5 +1,5 @@
 const Project = require('../models/Project');
-const prisma = require('../config/database');
+const { prisma } = require('../config/database');
 
 // Get all projects
 const getProjects = async (req, res) => {
