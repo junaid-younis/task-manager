@@ -4,9 +4,12 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const { checkDatabaseHealth } = require('./config/database');
+const { checkDatabaseHealth } = require('./lib/prisma');
 
 const app = express();
+
+// IMPORTANT: Trust proxy for Railway deployment
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -20,10 +23,17 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
+// Rate limiting - now properly configured for proxies
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  trustProxy: true, // Trust proxy headers
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/health' || req.path === '/';
+  }
 });
 app.use('/api/', limiter);
 
@@ -123,6 +133,14 @@ app.use((err, req, res, next) => {
       message: 'Database error occurred',
       error: process.env.NODE_ENV === 'development' ? err.message : 'Database operation failed',
       code: err.code
+    });
+  }
+  
+  // Handle rate limit errors
+  if (err.code === 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR') {
+    console.error('Rate limit proxy error:', err.message);
+    return res.status(500).json({
+      message: 'Server configuration error'
     });
   }
   
