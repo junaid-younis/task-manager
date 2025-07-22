@@ -16,7 +16,7 @@ export const authService = {
 
   // Register user
   register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
+    const response = await api.post('/api/auth/register', userData);
     const { user, token } = response.data;
     
     // Store token and user in localStorage
