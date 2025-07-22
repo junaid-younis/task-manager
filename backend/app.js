@@ -40,7 +40,7 @@ app.use('/api/comments', require('./routes/comments'));
 app.use('/api/users', require('./routes/users'));
 
 // copilot route
-app.use('/copilotkit', require('./routes/copilotkit'));
+//app.use('/copilotkit', require('./routes/copilotkit'));
 
 
 // Error handling middleware
