@@ -4,7 +4,7 @@ import { LOCAL_STORAGE_KEYS } from '../utils/constants';
 export const authService = {
   // Login user
   login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
+    const response = await api.post('/api/auth/login', credentials);
     const { user, token } = response.data;
     
     // Store token and user in localStorage
