@@ -4,7 +4,7 @@ export const commentService = {
   // Get task comments
   getTaskComments: async (taskId) => {
     try {
-      const response = await api.get(`/comments/task/${taskId}`);
+      const response = await api.get(`/api/comments/task/${taskId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -15,7 +15,7 @@ export const commentService = {
   // Get comment by ID
   getComment: async (id) => {
     try {
-      const response = await api.get(`/comments/${id}`);
+      const response = await api.get(`/api/comments/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching comment:', error);
@@ -26,7 +26,7 @@ export const commentService = {
   // Create comment
   createComment: async (commentData) => {
     try {
-      const response = await api.post('/comments', commentData);
+      const response = await api.post('/api/comments', commentData);
       return response.data;
     } catch (error) {
       console.error('Error creating comment:', error);
@@ -37,7 +37,7 @@ export const commentService = {
   // Update comment
   updateComment: async (id, commentData) => {
     try {
-      const response = await api.put(`/comments/${id}`, commentData);
+      const response = await api.put(`/api/comments/${id}`, commentData);
       return response.data;
     } catch (error) {
       console.error('Error updating comment:', error);
@@ -48,7 +48,7 @@ export const commentService = {
   // Delete comment
   deleteComment: async (id) => {
     try {
-      const response = await api.delete(`/comments/${id}`);
+      const response = await api.delete(`/api/comments/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting comment:', error);
@@ -59,7 +59,7 @@ export const commentService = {
   // Get recent comments
   getRecentComments: async (params = {}) => {
     try {
-      const response = await api.get('/comments/recent', { params });
+      const response = await api.get('/api/comments/recent', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching recent comments:', error);
@@ -70,7 +70,7 @@ export const commentService = {
   // Get comment statistics
   getCommentStatistics: async (params = {}) => {
     try {
-      const response = await api.get('/comments/statistics', { params });
+      const response = await api.get('/api/comments/statistics', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching comment statistics:', error);
